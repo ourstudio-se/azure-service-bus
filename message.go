@@ -9,13 +9,15 @@ import (
 	"time"
 )
 
+// Message maps to a Azure Service Bus message with broker
+// properties and properties for custom properties as well
 type Message struct {
 	MessageID              string `json:"MessageId"`
 	DeliveryCount          int
 	EnqueuedSequenceNumber int
-	EnqueuedTimeUtc        Time
+	EnqueuedTimeUtc        dateTime
 	LockToken              string
-	LockedUntilUtc         Time
+	LockedUntilUtc         dateTime
 	PartitionKey           string
 	SequenceNumber         int
 	State                  string
@@ -28,20 +30,22 @@ type Message struct {
 	Body []byte
 }
 
-type Time struct {
+type dateTime struct {
 	time.Time
 }
 
-func (t *Time) UnmarshalJSON(b []byte) (err error) {
-	dateTime := strings.Trim(string(b), "\"")
-	if dateTime == "null" || dateTime == "" {
+func (t *dateTime) UnmarshalJSON(b []byte) (err error) {
+	dt := strings.Trim(string(b), "\"")
+	if dt == "null" || dt == "" {
 		t.Time = time.Time{}
 		return
 	}
-	t.Time, err = time.Parse(time.RFC1123, dateTime)
+	t.Time, err = time.Parse(time.RFC1123, dt)
 	return
 }
 
+// ResponseToMessage reads a response byte stream and
+// creates a new Message instance from it
 func ResponseToMessage(resp *http.Response, propertyHeaders []string) (*Message, error) {
 	defer resp.Body.Close()
 

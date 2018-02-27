@@ -40,6 +40,9 @@ func extract(kvp string, keyName string) (string, error) {
 	return parts[1], nil
 }
 
+// ParseConnectionString handles standard Azure Service Bus connection
+// string formatted strings, and creates a generic instance of a `connectionString`
+// from it.
 func ParseConnectionString(cnxString string) (*connectionString, error) {
 	parts := strings.Split(cnxString, ";")
 

@@ -27,7 +27,7 @@ type pubsubClient struct {
 }
 
 func send(cnx *connectionString, path string, message *Message) error {
-	target, err := NewRequestUrl(cnx, path)
+	target, err := NewRequestURL(cnx, path)
 	if err != nil {
 		return err
 	}
@@ -54,7 +54,7 @@ func send(cnx *connectionString, path string, message *Message) error {
 }
 
 func peekLockMessage(cnx *connectionString, path string, timeout int, customProperties []string) (*Message, error) {
-	target, err := NewRequestUrl(cnx, path)
+	target, err := NewRequestURL(cnx, path)
 	if err != nil {
 		return nil, err
 	}
@@ -136,6 +136,8 @@ func (c *pubsubClient) SetCustomProperties(props []string) {
 	c.customProperties = props
 }
 
+// NewQueueClient creates a new instance of an Azure Service Bus
+// client aimed at queue communication
 func NewQueueClient(cnxString string, queueName string) (client, error) {
 	var c client
 	var cnx *connectionString
@@ -151,6 +153,9 @@ func NewQueueClient(cnxString string, queueName string) (client, error) {
 	return c, nil
 }
 
+// NewPubSubClient creates a new instance of an Azure Service Bus
+// client aimed at either sending messages to a topic or receiving
+// messages from a subscription
 func NewPubSubClient(cnxString string, topic string, subscription string) (client, error) {
 	var c client
 	var cnx *connectionString
