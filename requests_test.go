@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestNewRequestUrl(t *testing.T) {
+func TestNewRequestURL(t *testing.T) {
 	hostname := "test.servicebus.windows.net"
 	path := "/test"
 
@@ -15,7 +15,7 @@ func TestNewRequestUrl(t *testing.T) {
 		t.Errorf("Connectionstring could not be parsed.")
 	}
 
-	url, err := NewRequestUrl(cnx, path)
+	url, err := NewRequestURL(cnx, path)
 	if err != nil {
 		t.Errorf("Could not create request URL.")
 	}
@@ -43,7 +43,7 @@ func TestNewRequestWithEmptyBody(t *testing.T) {
 		t.Errorf("Connectionstring could not be parsed.")
 	}
 
-	url, err := NewRequestUrl(cnx, "/test")
+	url, err := NewRequestURL(cnx, "/test")
 	if err != nil {
 		t.Errorf("Could not create request URL.")
 	}
@@ -74,7 +74,7 @@ func TestNewRequestWithBody(t *testing.T) {
 		t.Errorf("Connectionstring could not be parsed.")
 	}
 
-	url, err := NewRequestUrl(cnx, "/test")
+	url, err := NewRequestURL(cnx, "/test")
 	if err != nil {
 		t.Errorf("Could not create request URL.")
 	}
@@ -106,7 +106,7 @@ func TestAddProperty(t *testing.T) {
 		t.Errorf("Connectionstring could not be parsed.")
 	}
 
-	url, err := NewRequestUrl(cnx, "/test")
+	url, err := NewRequestURL(cnx, "/test")
 	if err != nil {
 		t.Errorf("Could not create request URL.")
 	}

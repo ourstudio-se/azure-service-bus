@@ -6,7 +6,8 @@ import (
 	"net/url"
 )
 
-type client interface {
+// Client contain methods to communicate with Azure Service Bus over HTTPS
+type Client interface {
 	Send(message *Message) error
 	PeekLockMessage(timeout int) (*Message, error)
 	Unlock(message *Message) error
@@ -237,8 +238,8 @@ func (c *pubsubClient) SetCustomProperties(props []string) {
 
 // NewQueueClient creates a new instance of an Azure Service Bus
 // client aimed at queue communication
-func NewQueueClient(cnxString string, queueName string) (client, error) {
-	var c client
+func NewQueueClient(cnxString string, queueName string) (Client, error) {
+	var c Client
 	var cnx *connectionString
 	cnx, err := ParseConnectionString(cnxString)
 	if err != nil {
@@ -255,8 +256,8 @@ func NewQueueClient(cnxString string, queueName string) (client, error) {
 // NewPubSubClient creates a new instance of an Azure Service Bus
 // client aimed at either sending messages to a topic or receiving
 // messages from a subscription
-func NewPubSubClient(cnxString string, topic string, subscription string) (client, error) {
-	var c client
+func NewPubSubClient(cnxString string, topic string, subscription string) (Client, error) {
+	var c Client
 	var cnx *connectionString
 	cnx, err := ParseConnectionString(cnxString)
 	if err != nil {
