@@ -46,11 +46,6 @@ func NewRequest(cnx *connectionString, url *url.URL, method string, body []byte)
 	return req, nil
 }
 
-// AddProperty adds a custom property as a http.Request header
-func AddProperty(req *http.Request, key string, value string) {
-	req.Header.Set(key, value)
-}
-
 // Execute is an abstraction for actually making a HTTP request
 // to the Azure Service Bus
 func Execute(req *http.Request) (*http.Response, error) {
@@ -61,6 +56,13 @@ func Execute(req *http.Request) (*http.Response, error) {
 	}
 
 	return resp, nil
+}
+
+// Clear cleans up after finished HTTP request
+func Clear(resp *http.Response) {
+	if resp != nil {
+		resp.Body.Close()
+	}
 }
 
 func makeAuthorizationHeader(cnx *connectionString) string {

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-	"regexp"
 	"strings"
 	"time"
 )
@@ -25,9 +24,8 @@ type Message struct {
 
 	Location string
 
-	CustomProperties map[string]string
-
-	Body []byte
+	Properties map[string]string `json:"Properties"`
+	Body       []byte
 }
 
 type dateTime struct {
@@ -46,7 +44,7 @@ func (t *dateTime) UnmarshalJSON(b []byte) (err error) {
 
 // ResponseToMessage reads a response byte stream and
 // creates a new Message instance from it
-func ResponseToMessage(resp *http.Response, propertyHeaders []string) (*Message, error) {
+func ResponseToMessage(resp *http.Response) (*Message, error) {
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
@@ -54,8 +52,8 @@ func ResponseToMessage(resp *http.Response, propertyHeaders []string) (*Message,
 		return nil, err
 	}
 
-	props := resp.Header.Get("BrokerProperties")
-	location := resp.Header.Get("Location")
+	props := resp.Header.Get("brokerproperties")
+	location := resp.Header.Get("location")
 
 	var message Message
 	if err := json.Unmarshal([]byte(props), &message); err != nil {
@@ -65,42 +63,27 @@ func ResponseToMessage(resp *http.Response, propertyHeaders []string) (*Message,
 	message.Location = location
 	message.Body = body
 
-	message.CustomProperties, err = extractProperties(resp, propertyHeaders)
+	properties := make(map[string]string)
+	presets := map[string]int{
+		"brokerproperties":          1,
+		"strict-transport-security": 1,
+		"content-type":              1,
+		"location":                  1,
+		"server":                    1,
+		"date":                      1,
+	}
+	for key, value := range resp.Header {
+		if presets[strings.ToLower(key)] != 1 {
+			properties[strings.ToLower(key)] = strings.Trim(value[0], "\n\r\t\"'")
+		}
+	}
+
+	if len(properties) > 0 {
+		message.Properties = properties
+	}
 	if err != nil {
 		return &message, err
 	}
 
 	return &message, nil
-}
-
-func extractProperties(resp *http.Response, propertyHeaders []string) (map[string]string, error) {
-	var customProperties map[string]string
-	customProperties = make(map[string]string)
-
-	makeHeader, err := converter()
-	if err != nil {
-		return nil, err
-	}
-
-	for i := 0; i < len(propertyHeaders); i++ {
-		headerName := makeHeader(propertyHeaders[i])
-		headerValue := strings.Trim(resp.Header.Get(headerName), "\n\r\t\"")
-
-		if headerValue != "" {
-			customProperties[propertyHeaders[i]] = headerValue
-		}
-	}
-
-	return customProperties, nil
-}
-
-func converter() (func(string) string, error) {
-	reg, err := regexp.Compile("[^a-z0-9]")
-	if err != nil {
-		return nil, err
-	}
-
-	return func(headerName string) string {
-		return reg.ReplaceAllString(strings.ToLower(headerName), "")
-	}, nil
 }

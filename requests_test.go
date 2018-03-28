@@ -99,30 +99,3 @@ func TestNewRequestWithBody(t *testing.T) {
 		t.Errorf("Request did not contain correct body data.")
 	}
 }
-
-func TestAddProperty(t *testing.T) {
-	cnx, err := ParseConnectionString("Endpoint=sb://test.servicebus.windows.net/;SharedAccessKeyName=TestSharedAccessKey;SharedAccessKey=TestSharedAccessKey")
-	if err != nil {
-		t.Errorf("Connectionstring could not be parsed.")
-	}
-
-	url, err := NewRequestURL(cnx, "/test")
-	if err != nil {
-		t.Errorf("Could not create request URL.")
-	}
-
-	req, err := NewRequest(cnx, url, "POST", nil)
-	if err != nil {
-		t.Errorf("Could not create new request.")
-	}
-
-	AddProperty(req, "Content-Encoding", "gzip")
-	AddProperty(req, "Content-Type", "application/json")
-
-	if req.Header.Get("Content-Encoding") != "gzip" {
-		t.Errorf("Request did not contain specified custom property Content-Encoding.")
-	}
-	if req.Header.Get("Content-Type") != "application/json" {
-		t.Errorf("Request did not contain specified custom property Content-Type.")
-	}
-}

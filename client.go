@@ -14,20 +14,17 @@ type Client interface {
 	RenewLock(message *Message) error
 	DestructiveRead(timeout int) (*Message, error)
 	DeleteMessage(message *Message) error
-	SetCustomProperties(props []string)
 }
 
 type queueClient struct {
 	queueName        string
 	connectionString *connectionString
-	customProperties []string
 }
 
 type pubsubClient struct {
 	topic            string
 	subscription     string
 	connectionString *connectionString
-	customProperties []string
 }
 
 func send(cnx *connectionString, path string, message *Message) error {
@@ -41,8 +38,8 @@ func send(cnx *connectionString, path string, message *Message) error {
 		return err
 	}
 
-	for key, value := range message.CustomProperties {
-		AddProperty(req, key, value)
+	for key, value := range message.Properties {
+		req.Header[key] = []string{value}
 	}
 
 	resp, err := Execute(req)
@@ -50,14 +47,17 @@ func send(cnx *connectionString, path string, message *Message) error {
 		return err
 	}
 
-	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusCreated {
+	statusCode := resp.StatusCode
+	Clear(resp)
+
+	if statusCode == http.StatusOK || statusCode == http.StatusCreated {
 		return nil
 	}
 
-	return fmt.Errorf("Could not send message. Server returned error %d", resp.StatusCode)
+	return fmt.Errorf("Could not send message. Server returned error %d", statusCode)
 }
 
-func peekLockMessage(cnx *connectionString, path string, timeout int, customProperties []string) (*Message, error) {
+func peekLockMessage(cnx *connectionString, path string, timeout int) (*Message, error) {
 	target, err := NewRequestURL(cnx, path)
 	if err != nil {
 		return nil, err
@@ -73,7 +73,9 @@ func peekLockMessage(cnx *connectionString, path string, timeout int, customProp
 		return nil, err
 	}
 
-	msg, err := ResponseToMessage(resp, customProperties)
+	msg, err := ResponseToMessage(resp)
+	Clear(resp)
+
 	if err != nil {
 		return nil, err
 	}
@@ -97,11 +99,14 @@ func unlockMessage(cnx *connectionString, message *Message) error {
 		return err
 	}
 
-	if resp.StatusCode == http.StatusOK {
+	statusCode := resp.StatusCode
+	Clear(resp)
+
+	if statusCode == http.StatusOK {
 		return nil
 	}
 
-	return fmt.Errorf("Could not unlock message. Server returned error %d", resp.StatusCode)
+	return fmt.Errorf("Could not unlock message. Server returned error %d", statusCode)
 }
 
 func renewMessageLock(cnx *connectionString, message *Message) error {
@@ -120,14 +125,17 @@ func renewMessageLock(cnx *connectionString, message *Message) error {
 		return err
 	}
 
-	if resp.StatusCode == http.StatusOK {
+	statusCode := resp.StatusCode
+	Clear(resp)
+
+	if statusCode == http.StatusOK {
 		return nil
 	}
 
-	return fmt.Errorf("Could not renew message lock. Server returned error %d", resp.StatusCode)
+	return fmt.Errorf("Could not renew message lock. Server returned error %d", statusCode)
 }
 
-func destructiveReadMessage(cnx *connectionString, path string, timeout int, customProperties []string) (*Message, error) {
+func destructiveReadMessage(cnx *connectionString, path string, timeout int) (*Message, error) {
 	target, err := NewRequestURL(cnx, path)
 	if err != nil {
 		return nil, err
@@ -143,7 +151,8 @@ func destructiveReadMessage(cnx *connectionString, path string, timeout int, cus
 		return nil, err
 	}
 
-	msg, err := ResponseToMessage(resp, customProperties)
+	msg, err := ResponseToMessage(resp)
+	Clear(resp)
 	if err != nil {
 		return nil, err
 	}
@@ -167,11 +176,14 @@ func deleteMessage(cnx *connectionString, message *Message) error {
 		return err
 	}
 
-	if resp.StatusCode == http.StatusOK {
+	statusCode := resp.StatusCode
+	Clear(resp)
+
+	if statusCode == http.StatusOK {
 		return nil
 	}
 
-	return fmt.Errorf("Could not delete message. Server returned error %d", resp.StatusCode)
+	return fmt.Errorf("Could not delete message. Server returned error %d", statusCode)
 }
 
 func (c *queueClient) Send(message *Message) error {
@@ -181,7 +193,7 @@ func (c *queueClient) Send(message *Message) error {
 
 func (c *queueClient) PeekLockMessage(timeout int) (*Message, error) {
 	path := fmt.Sprintf("/%s/messages/head?timeout=%d", c.queueName, timeout)
-	return peekLockMessage(c.connectionString, path, timeout, c.customProperties)
+	return peekLockMessage(c.connectionString, path, timeout)
 }
 
 func (c *queueClient) Unlock(message *Message) error {
@@ -194,15 +206,11 @@ func (c *queueClient) RenewLock(message *Message) error {
 
 func (c *queueClient) DestructiveRead(timeout int) (*Message, error) {
 	path := fmt.Sprintf("/%s/messages/head?timeout=%d", c.queueName, timeout)
-	return destructiveReadMessage(c.connectionString, path, timeout, c.customProperties)
+	return destructiveReadMessage(c.connectionString, path, timeout)
 }
 
 func (c *queueClient) DeleteMessage(message *Message) error {
 	return deleteMessage(c.connectionString, message)
-}
-
-func (c *queueClient) SetCustomProperties(props []string) {
-	c.customProperties = props
 }
 
 func (c *pubsubClient) Send(message *Message) error {
@@ -212,7 +220,7 @@ func (c *pubsubClient) Send(message *Message) error {
 
 func (c *pubsubClient) PeekLockMessage(timeout int) (*Message, error) {
 	path := fmt.Sprintf("/%s/subscriptions/%s/messages/head?timeout=%d", c.topic, c.subscription, timeout)
-	return peekLockMessage(c.connectionString, path, timeout, c.customProperties)
+	return peekLockMessage(c.connectionString, path, timeout)
 }
 
 func (c *pubsubClient) Unlock(message *Message) error {
@@ -225,15 +233,11 @@ func (c *pubsubClient) RenewLock(message *Message) error {
 
 func (c *pubsubClient) DestructiveRead(timeout int) (*Message, error) {
 	path := fmt.Sprintf("/%s/subscriptions/%s/messages/head?timeout=%d", c.topic, c.subscription, timeout)
-	return destructiveReadMessage(c.connectionString, path, timeout, c.customProperties)
+	return destructiveReadMessage(c.connectionString, path, timeout)
 }
 
 func (c *pubsubClient) DeleteMessage(message *Message) error {
 	return deleteMessage(c.connectionString, message)
-}
-
-func (c *pubsubClient) SetCustomProperties(props []string) {
-	c.customProperties = props
 }
 
 // NewQueueClient creates a new instance of an Azure Service Bus
