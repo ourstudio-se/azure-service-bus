@@ -58,13 +58,6 @@ func Execute(req *http.Request) (*http.Response, error) {
 	return resp, nil
 }
 
-// Clear cleans up after finished HTTP request
-func Clear(resp *http.Response) {
-	if resp != nil {
-		resp.Body.Close()
-	}
-}
-
 func makeAuthorizationHeader(cnx *connectionString) string {
 	ticks := time.Now().Add(300 * time.Second).Round(time.Second).Unix()
 	expires := strconv.Itoa(int(ticks))

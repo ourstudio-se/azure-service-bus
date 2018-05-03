@@ -45,8 +45,6 @@ func (t *dateTime) UnmarshalJSON(b []byte) (err error) {
 // ResponseToMessage reads a response byte stream and
 // creates a new Message instance from it
 func ResponseToMessage(resp *http.Response) (*Message, error) {
-	defer resp.Body.Close()
-
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err

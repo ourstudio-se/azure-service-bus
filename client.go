@@ -2,6 +2,8 @@ package azureservicebus
 
 import (
 	"fmt"
+	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 )
@@ -43,13 +45,19 @@ func send(cnx *connectionString, path string, message *Message) error {
 	}
 
 	resp, err := Execute(req)
+	if resp != nil {
+		defer resp.Body.Close()
+	}
+	if err != nil {
+		return err
+	}
+
+	_, err = io.Copy(ioutil.Discard, resp.Body)
 	if err != nil {
 		return err
 	}
 
 	statusCode := resp.StatusCode
-	Clear(resp)
-
 	if statusCode == http.StatusOK || statusCode == http.StatusCreated {
 		return nil
 	}
@@ -69,13 +77,18 @@ func peekLockMessage(cnx *connectionString, path string, timeout int) (*Message,
 	}
 
 	resp, err := Execute(req)
+	if resp != nil {
+		defer resp.Body.Close()
+	}
 	if err != nil {
 		return nil, err
 	}
 
-	msg, err := ResponseToMessage(resp)
-	Clear(resp)
+	if resp.StatusCode == http.StatusNoContent {
+		return nil, nil
+	}
 
+	msg, err := ResponseToMessage(resp)
 	if err != nil {
 		return nil, err
 	}
@@ -95,13 +108,19 @@ func unlockMessage(cnx *connectionString, message *Message) error {
 	}
 
 	resp, err := Execute(req)
+	if resp != nil {
+		defer resp.Body.Close()
+	}
+	if err != nil {
+		return err
+	}
+
+	_, err = io.Copy(ioutil.Discard, resp.Body)
 	if err != nil {
 		return err
 	}
 
 	statusCode := resp.StatusCode
-	Clear(resp)
-
 	if statusCode == http.StatusOK {
 		return nil
 	}
@@ -121,13 +140,19 @@ func renewMessageLock(cnx *connectionString, message *Message) error {
 	}
 
 	resp, err := Execute(req)
+	if resp != nil {
+		defer resp.Body.Close()
+	}
+	if err != nil {
+		return err
+	}
+
+	_, err = io.Copy(ioutil.Discard, resp.Body)
 	if err != nil {
 		return err
 	}
 
 	statusCode := resp.StatusCode
-	Clear(resp)
-
 	if statusCode == http.StatusOK {
 		return nil
 	}
@@ -147,12 +172,14 @@ func destructiveReadMessage(cnx *connectionString, path string, timeout int) (*M
 	}
 
 	resp, err := Execute(req)
+	if resp != nil {
+		defer resp.Body.Close()
+	}
 	if err != nil {
 		return nil, err
 	}
 
 	msg, err := ResponseToMessage(resp)
-	Clear(resp)
 	if err != nil {
 		return nil, err
 	}
@@ -172,13 +199,14 @@ func deleteMessage(cnx *connectionString, message *Message) error {
 	}
 
 	resp, err := Execute(req)
+	if resp != nil {
+		defer resp.Body.Close()
+	}
 	if err != nil {
 		return err
 	}
 
 	statusCode := resp.StatusCode
-	Clear(resp)
-
 	if statusCode == http.StatusOK {
 		return nil
 	}
