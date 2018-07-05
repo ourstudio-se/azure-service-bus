@@ -10,6 +10,8 @@ import (
 	"net/url"
 	"strconv"
 	"time"
+
+	"github.com/sethgrid/pester"
 )
 
 const azureServiceBusAPIVersion = "2016-07"
@@ -47,9 +49,13 @@ func NewRequest(cnx *connectionString, url *url.URL, method string, body []byte)
 }
 
 // Execute is an abstraction for actually making a HTTP request
-// to the Azure Service Bus
+// to the Azure Service Bus, implemented with Pester to support
+// retry and back off functionality
 func Execute(req *http.Request) (*http.Response, error) {
-	client := &http.Client{}
+	client := pester.New()
+	client.MaxRetries = 5
+	client.Backoff = pester.ExponentialBackoff
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
