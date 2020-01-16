@@ -23,15 +23,15 @@ type HTTPRequestClient struct {
 }
 
 func NewHTTPRequestClient(cnx *connectionString) *HTTPRequestClient {
-	initalTimeout := 1 * time.Second
-	maxTimeout := 3 * time.Second
+	initalTimeout := 5 * time.Second
+	maxTimeout := 10 * time.Second
 	exponentFactor := 2.0
 	maximumJitterInterval := 100 * time.Millisecond
 
 	backoff := heimdall.NewExponentialBackoff(initalTimeout, maxTimeout, exponentFactor, maximumJitterInterval)
 	retrier := heimdall.NewRetrier(backoff)
 
-	timeout := 5000 * time.Millisecond
+	timeout := 5 * time.Second
 	client := httpclient.NewClient(
 		httpclient.WithHTTPTimeout(timeout),
 		httpclient.WithRetrier(retrier),
