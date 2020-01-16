@@ -4,7 +4,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/ourstudio-se/azure-service-bus"
+	azureservicebus "github.com/ourstudio-se/azure-service-bus"
 )
 
 func main() {

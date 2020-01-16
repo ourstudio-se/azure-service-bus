@@ -2,22 +2,15 @@ package azureservicebus
 
 import (
 	"bytes"
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/base64"
 	"fmt"
 	"net/http"
 	"net/url"
-	"strconv"
-	"time"
-
-	"github.com/sethgrid/pester"
 )
-
-const azureServiceBusAPIVersion = "2016-07"
 
 // NewRequestURL creates an Azure Service Bus URL (with versioning)
 // from a the specified connection string and action path
+//
+// [Deprecated]: use HTTPRequestClient instead
 func NewRequestURL(cnx *connectionString, path string) (*url.URL, error) {
 	baseurl := cnx.url
 
@@ -36,6 +29,8 @@ func NewRequestURL(cnx *connectionString, path string) (*url.URL, error) {
 
 // NewRequest creates a new http.Request instance with the correct
 // headers set for communication with an Azure Service Bus
+//
+// [Deprecated]: use HTTPRequestClient instead
 func NewRequest(cnx *connectionString, url *url.URL, method string, body []byte) (*http.Request, error) {
 	req, err := http.NewRequest(method, url.String(), bytes.NewBuffer(body))
 	if err != nil {
@@ -51,28 +46,14 @@ func NewRequest(cnx *connectionString, url *url.URL, method string, body []byte)
 // Execute is an abstraction for actually making a HTTP request
 // to the Azure Service Bus, implemented with Pester to support
 // retry and back off functionality
+//
+// [Deprecated]: use HTTPRequestClient instead
 func Execute(req *http.Request) (*http.Response, error) {
-	client := pester.New()
-	client.MaxRetries = 5
-	client.Backoff = pester.ExponentialBackoff
-
+	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
 
 	return resp, nil
-}
-
-func makeAuthorizationHeader(cnx *connectionString) string {
-	ticks := time.Now().Add(300 * time.Second).Round(time.Second).Unix()
-	expires := strconv.Itoa(int(ticks))
-
-	uri := url.QueryEscape(cnx.url.String())
-
-	hash := hmac.New(sha256.New, []byte(cnx.accessKey))
-	hash.Write([]byte(uri + "\n" + expires))
-	signature := url.QueryEscape(base64.StdEncoding.EncodeToString(hash.Sum(nil)))
-
-	return fmt.Sprintf("SharedAccessSignature sig=%s&se=%s&skn=%s&sr=%s", signature, expires, cnx.keyName, uri)
 }

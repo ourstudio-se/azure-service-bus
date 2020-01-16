@@ -2,4 +2,9 @@ module github.com/ourstudio-se/azure-service-bus
 
 go 1.13
 
-require github.com/sethgrid/pester v0.0.0-20190127155807-68a33a018ad0
+require (
+	github.com/gojektech/heimdall v5.0.2+incompatible
+	github.com/gojektech/valkyrie v0.0.0-20190210220504-8f62c1e7ba45 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
+	github.com/sethgrid/pester v0.0.0-20190127155807-68a33a018ad0
+)
