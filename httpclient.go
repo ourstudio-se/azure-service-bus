@@ -2,6 +2,7 @@ package azureservicebus
 
 import (
 	"bytes"
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
@@ -10,36 +11,18 @@ import (
 	"net/url"
 	"strconv"
 	"time"
-
-	"github.com/gojektech/heimdall"
-	"github.com/gojektech/heimdall/httpclient"
 )
 
 const azureServiceBusAPIVersion = "2016-07"
 
 type HTTPRequestClient struct {
-	client           *httpclient.Client
+	client           *http.Client
 	connectionString *connectionString
 }
 
 func NewHTTPRequestClient(cnx *connectionString) *HTTPRequestClient {
-	initalTimeout := 5 * time.Second
-	maxTimeout := 10 * time.Second
-	exponentFactor := 2.0
-	maximumJitterInterval := 100 * time.Millisecond
-
-	backoff := heimdall.NewExponentialBackoff(initalTimeout, maxTimeout, exponentFactor, maximumJitterInterval)
-	retrier := heimdall.NewRetrier(backoff)
-
-	timeout := 5 * time.Second
-	client := httpclient.NewClient(
-		httpclient.WithHTTPTimeout(timeout),
-		httpclient.WithRetrier(retrier),
-		httpclient.WithRetryCount(4),
-	)
-
 	return &HTTPRequestClient{
-		client:           client,
+		client:           &http.Client{},
 		connectionString: cnx,
 	}
 }
@@ -75,10 +58,23 @@ func (hrc *HTTPRequestClient) NewRequest(url *url.URL, method string, body []byt
 }
 
 // Execute is an abstraction for actually making a HTTP request
-// to the Azure Service Bus, implemented with Pester to support
-// retry and back off functionality
+// to the Azure Service Bus
 func (hrc *HTTPRequestClient) Execute(req *http.Request) (*http.Response, error) {
-	return hrc.client.Do(req)
+	return hrc.ExecuteWithTimeout(req, time.Second*30)
+}
+
+// ExecuteWithTimeout is an abstraction for actually making a HTTP request
+// to the Azure Service Bus, using a timeout
+func (hrc *HTTPRequestClient) ExecuteWithTimeout(req *http.Request, timeout time.Duration) (*http.Response, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	r, err := hrc.client.Do(req.WithContext(ctx))
+	if err != nil {
+		return nil, err
+	}
+
+	return r, nil
 }
 
 func makeAuthorizationHeader(cnx *connectionString) string {

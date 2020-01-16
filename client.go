@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"time"
 )
 
 // Client contain methods to communicate with Azure Service Bus over HTTPS
@@ -73,7 +74,7 @@ func peekLockMessage(client *HTTPRequestClient, path string, timeout int) (*Mess
 		return nil, err
 	}
 
-	resp, err := client.Execute(req)
+	resp, err := client.ExecuteWithTimeout(req, time.Duration(timeout)*time.Second)
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +161,7 @@ func destructiveReadMessage(client *HTTPRequestClient, path string, timeout int)
 		return nil, err
 	}
 
-	resp, err := client.Execute(req)
+	resp, err := client.ExecuteWithTimeout(req, time.Duration(timeout)*time.Second)
 	if err != nil {
 		return nil, err
 	}
@@ -198,56 +199,72 @@ func deleteMessage(client *HTTPRequestClient, message *Message) error {
 	return fmt.Errorf("Could not delete message. Server returned error %d", resp.StatusCode)
 }
 
+// Send a new message to the Azure Service Bus Queue
 func (c *queueClient) Send(message *Message) error {
 	path := fmt.Sprintf("/%s/messages/", c.queueName)
 	return send(c.client, path, message)
 }
 
+// PeekLockMessage listens for a message without removing it
+// from the queue. The timeout should be specified in seconds.
 func (c *queueClient) PeekLockMessage(timeout int) (*Message, error) {
 	path := fmt.Sprintf("/%s/messages/head?timeout=%d", c.queueName, timeout)
 	return peekLockMessage(c.client, path, timeout)
 }
 
+// Unlock a message in the queue to enable re-processing
 func (c *queueClient) Unlock(message *Message) error {
 	return unlockMessage(c.client, message)
 }
 
+// RenewLock a message in the queue to keep blocking re-processing
 func (c *queueClient) RenewLock(message *Message) error {
 	return renewMessageLock(c.client, message)
 }
 
+// DestructiveRead a message, removing it from the queue. The timeout
+// should be specified in seconds.
 func (c *queueClient) DestructiveRead(timeout int) (*Message, error) {
 	path := fmt.Sprintf("/%s/messages/head?timeout=%d", c.queueName, timeout)
 	return destructiveReadMessage(c.client, path, timeout)
 }
 
+// DeleteMessage from the queue
 func (c *queueClient) DeleteMessage(message *Message) error {
 	return deleteMessage(c.client, message)
 }
 
+// Send a new message to the Azure Service Bus publisher
 func (c *pubsubClient) Send(message *Message) error {
 	path := fmt.Sprintf("/%s/messages/", c.topic)
 	return send(c.client, path, message)
 }
 
+// PeekLockMessage listens for a message without removing it
+// from the subscriber. The timeout should be specified in seconds.
 func (c *pubsubClient) PeekLockMessage(timeout int) (*Message, error) {
 	path := fmt.Sprintf("/%s/subscriptions/%s/messages/head?timeout=%d", c.topic, c.subscription, timeout)
 	return peekLockMessage(c.client, path, timeout)
 }
 
+// Unlock a message in the subscription to enable re-processing
 func (c *pubsubClient) Unlock(message *Message) error {
 	return unlockMessage(c.client, message)
 }
 
+// RenewLock a message in the subscription to keep blocking re-processing
 func (c *pubsubClient) RenewLock(message *Message) error {
 	return renewMessageLock(c.client, message)
 }
 
+// DestructiveRead a message, removing it from the subscription. The timeout
+// should be specified in seconds.
 func (c *pubsubClient) DestructiveRead(timeout int) (*Message, error) {
 	path := fmt.Sprintf("/%s/subscriptions/%s/messages/head?timeout=%d", c.topic, c.subscription, timeout)
 	return destructiveReadMessage(c.client, path, timeout)
 }
 
+// DeleteMessage from the subscription
 func (c *pubsubClient) DeleteMessage(message *Message) error {
 	return deleteMessage(c.client, message)
 }
